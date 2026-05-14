@@ -584,11 +584,15 @@
 	/** fetch the fill layer by URL using the DOM */
 	NSAssert( svgElement.rootOfCurrentDocumentFragment != nil, @"This SVG shape has a URL fill type; it needs to search for that URL (%@) inside its nearest-ancestor <SVG> node, but the rootOfCurrentDocumentFragment reference was nil (suggests the parser failed, or the SVG file is corrupt)", gradId );
 	
-	SVGGradientElement* svgGradient = (SVGGradientElement*) [svgElement.rootOfCurrentDocumentFragment getElementById:gradId];
-    if (svgGradient == nil) {
-        // SVG spec allows referenced gradient not exist and will use fallback color
-        SVGKitLogWarn(@"This SVG shape has a URL fill (%@), but could not find an XML Node with that ID inside the DOM tree (suggests the parser failed, or the SVG file is corrupt)", gradId );
-    }
+	SVGElement* referencedElement = [svgElement.rootOfCurrentDocumentFragment getElementById:gradId];
+	if (![referencedElement isKindOfClass:[SVGGradientElement class]]) {
+		if (referencedElement == nil) {
+			// SVG spec allows referenced gradient not exist and will use fallback color
+			SVGKitLogWarn(@"This SVG shape has a URL fill (%@), but could not find an XML Node with that ID inside the DOM tree", gradId );
+		}
+		return nil;
+	}
+	SVGGradientElement* svgGradient = (SVGGradientElement*) referencedElement;
 
 	[svgGradient synthesizeProperties];
 	
