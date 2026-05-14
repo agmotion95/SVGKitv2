@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  test-base64-image.svg
+  SVGKit regression test for embedded base64 PNG/JPEG images.
+
+  Tests three rendering paths that were broken before the fix:
+
+  1. (Row 1) Direct <image xlink:href="data:image/png;base64,...">
+     Tests Phase 1 fix: xlink:href resolution on SVGImageElement.
+
+  2. (Row 2) <image> inside a <pattern>, referenced by a rect fill="url(#p)"
+     Tests Phase 2 fix: SVGPatternElement creation + fill URL handling.
+
+  3. (Row 3) <image> inside <defs>, instantiated via <use x="…" y="…">
+     Tests Phase 3 fix: SVGUseElement x/y positioning.
+
+  The embedded base64 PNG is a 16×16 solid red square for easy visual
+  verification (red = correct decode; placeholder broken-image = parse fail).
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="200" height="200"
+     viewBox="0 0 200 200">
+
+  <!-- Shared 16×16 solid-red PNG encoded as base64 -->
+  <!-- To regenerate:  python3 -c "import base64,struct,zlib
+  def png(w,h,rgb):
+    raw=b''.join(b'\x00'+bytes(rgb)*w for _ in range(h))
+    def c(t,d):
+      return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
+    return b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+  import sys; sys.stdout.buffer.write(png(16,16,(255,0,0)))" | base64 -->
+  <defs>
+    <!-- ① reusable image node for the <use> test -->
+    <image id="red-square"
+           xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAB3RJTUUH6AEeCxMfNgLFEAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAASSURBVCjPY/zPQCVgHBUYBQABOAABRMKTbAAAAABJRU5ErkJggg=="
+           width="64" height="64"/>
+
+    <!-- ② pattern wrapping the same image -->
+    <pattern id="img-pattern"
+             patternUnits="userSpaceOnUse"
+             x="0" y="0" width="64" height="64">
+      <image xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAB3RJTUUH6AEeCxMfNgLFEAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAASSURBVCjPY/zPQCVgHBUYBQABOAABRMKTbAAAAABJRU5ErkJggg=="
+             width="64" height="64"/>
+    </pattern>
+  </defs>
+
+  <!-- ── Row labels ── -->
+  <text x="4" y="14" font-size="9" fill="#555">1. xlink:href direct</text>
+  <text x="4" y="84" font-size="9" fill="#555">2. pattern fill</text>
+  <text x="4" y="154" font-size="9" fill="#555">3. &lt;use&gt; positioned</text>
+
+  <!-- ① Direct <image> with xlink:href — Phase 1 -->
+  <image xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAB3RJTUUH6AEeCxMfNgLFEAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAASSURBVCjPY/zPQCVgHBUYBQABOAABRMKTbAAAAABJRU5ErkJggg=="
+        x="120" y="18" width="64" height="64"/>
+
+  <!-- ② rect filled with a pattern containing an <image> — Phase 2 -->
+  <rect x="120" y="88" width="64" height="64" fill="url(#img-pattern)"/>
+
+  <!-- ③ <use> of the pre-defined <image>, positioned — Phase 3 -->
+  <use xlink:href="#red-square" x="120" y="158"/>
+
+</svg>
