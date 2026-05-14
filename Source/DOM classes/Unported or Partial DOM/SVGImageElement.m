@@ -54,8 +54,15 @@ CGImageRef SVGImageCGImage(UIImage *img)
 	if( [[self getAttribute:@"height"] length] > 0 )
 	_height = [[self getAttribute:@"height"] floatValue];
 
+	// SVG 2 uses plain "href"; SVG 1.1 tools (Illustrator, Inkscape, Figma) use "xlink:href".
+	// Try the unqualified attribute first, then fall back to the namespaced xlink version.
 	if( [[self getAttribute:@"href"] length] > 0 )
         self.href = [self getAttribute:@"href"];
+    else {
+        NSString* xlinkHref = [self getAttributeNS:@"http://www.w3.org/1999/xlink" localName:@"href"];
+        if( [xlinkHref length] > 0 )
+            self.href = xlinkHref;
+    }
     
     [SVGHelperUtilities parsePreserveAspectRatioFor:self];
 }

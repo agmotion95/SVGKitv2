@@ -3,6 +3,7 @@
 #import "CAShapeLayerWithHitTest.h"
 #import "SVGUtils.h"
 #import "SVGGradientElement.h"
+#import "SVGPatternElement.h"
 #import "CGPathAdditions.h"
 
 #import "SVGTransformable.h"
@@ -504,8 +505,7 @@
 		NSRange idKeyRange = NSMakeRange(5, fillIdArg.length - 6);
 		NSString* fillId = [fillIdArg substringWithRange:idKeyRange];
 		
-		/** Replace the return layer with a special layer using the URL fill */
-		/** fetch the fill layer by URL using the DOM */
+		/** First try to resolve as a gradient */
 		SVGGradientLayer *gradientLayer = [self getGradientLayerWithId:fillId forElement:svgElement withRect:fillLayer.frame
 										   transform:transformAbsolute];
         if (gradientLayer) {
@@ -518,7 +518,36 @@
             gradientLayer.frame = fillLayer.frame;
             fillLayer = (CAShapeLayer* )gradientLayer;
         } else {
-            // no gradient, fallback
+            /** Not a gradient — try resolving as a <pattern> element */
+            SVGElement *referencedElement = (SVGElement *)[svgElement.rootOfCurrentDocumentFragment getElementById:fillId];
+            if ([referencedElement isKindOfClass:[SVGPatternElement class]]) {
+                SVGPatternElement *patternElement = (SVGPatternElement *)referencedElement;
+                CGSize tileSize = CGSizeMake(patternElement.width, patternElement.height);
+                if (tileSize.width > 0 && tileSize.height > 0) {
+                    CGImageRef tileImage = [patternElement renderChildrenIntoCGImageOfSize:tileSize];
+                    if (tileImage) {
+                        /** Create a tiled pattern layer the same size as the shape's bounding box */
+                        CALayer *patternTileLayer = [CALayer layer];
+                        patternTileLayer.frame = fillLayer.frame;
+                        patternTileLayer.contents = (__bridge id)tileImage;
+                        patternTileLayer.contentsGravity = kCAGravityResizeAspectFill;
+                        CGImageRelease(tileImage);
+
+                        /** Mask the tile layer to the shape path so it only fills inside the shape */
+                        CAShapeLayer *maskLayer = [CAShapeLayer layer];
+                        maskLayer.frame = localRect;
+                        maskLayer.path = fillLayer.path;
+                        maskLayer.fillColor = [UIColor blackColor].CGColor;
+                        maskLayer.strokeColor = nil;
+                        patternTileLayer.mask = maskLayer;
+
+                        fillLayer = (CAShapeLayer *)patternTileLayer;
+                    }
+                }
+            } else {
+                // no gradient and no pattern found — fallback to transparent fill
+                SVGKitLogWarn(@"fill URL '%@' could not be resolved to a gradient or pattern in the DOM", fillId);
+            }
         }
 	}
 	else if( actualFill.length > 0 || actualFillOpacity.length > 0 )

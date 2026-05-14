@@ -21,6 +21,7 @@
 #import "SVGPolylineElement.h"
 #import "SVGRectElement.h"
 #import "SVGTitleElement.h"
+#import "SVGPatternElement.h"
 
 @implementation SVGKParserPatternsAndGradients
 
@@ -40,10 +41,19 @@
 
 - (Node*)handleStartElement:(NSString *)name document:(SVGKSource*) document namePrefix:(NSString*)prefix namespaceURI:(NSString*) XMLNSURI attributes:(NSMutableDictionary *)attributes parseResult:(SVGKParseResult*) parseResult parentNode:(Node*) parentNode
 {
-		
-	NSAssert( FALSE, @"Patterns are not supported by SVGKit yet - no-one has implemented them" );
-	
-	return nil;
+    if (![[self supportedNamespaces] containsObject:XMLNSURI])
+        return nil;
+
+    if ([name isEqualToString:@"pattern"]) {
+        NSString *qualifiedName = (prefix == nil) ? name : [NSString stringWithFormat:@"%@:%@", prefix, name];
+        SVGPatternElement *element = [[SVGPatternElement alloc] initWithQualifiedName:qualifiedName
+                                                                        inNameSpaceURI:XMLNSURI
+                                                                            attributes:attributes];
+        [element postProcessAttributesAddingErrorsTo:parseResult];
+        return element;
+    }
+
+    return nil;
 }
 
 -(void)handleEndElement:(Node *)newNode document:(SVGKSource *)document parseResult:(SVGKParseResult *)parseResult

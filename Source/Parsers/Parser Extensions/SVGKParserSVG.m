@@ -11,6 +11,7 @@
 #import "SVGImageElement.h"
 #import "SVGLineElement.h"
 #import "SVGPathElement.h"
+#import "SVGPatternElement.h"
 #import "SVGPolygonElement.h"
 #import "SVGPolylineElement.h"
 #import "SVGRectElement.h"
@@ -41,6 +42,7 @@
                       [SVGClipPathElement class], @"clipPath",
                       [SVGImageElement class], @"image",
                       [SVGLineElement class], @"line",
+                      [SVGPatternElement class], @"pattern",
                       [SVGPathElement class], @"path",
                       [SVGPolygonElement class], @"polygon",
                       [SVGPolylineElement class], @"polyline",
