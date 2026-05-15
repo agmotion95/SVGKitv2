@@ -22,7 +22,7 @@
 #import "Node.h"
 
 /*! Experimental: allow SVGKit parser-extensions to insert custom data into an SVGKParseResult */
-#define ENABLE_PARSER_EXTENSIONS_CUSTOM_DATA 0
+#define ENABLE_PARSER_EXTENSIONS_CUSTOM_DATA 1
 
 @protocol SVGKParserExtension <NSObject>
 
@@ -49,5 +49,11 @@
  In SVG, almost all data is stored in the attributes instead
  */
 -(void)handleEndElement:(Node *)newNode document:(SVGKSource *)document parseResult:(SVGKParseResult *)parseResult;
+
+/**
+ Called after the entire document has been parsed.
+ This is useful for resolving forward references (e.g. <use> tags that point to elements later in the file).
+ */
+-(void)postParse:(SVGKParseResult *)parseResult;
 
 @end

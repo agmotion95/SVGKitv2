@@ -305,6 +305,15 @@ SVGKParser* getCurrentlyParsingParser()
 	xmlFreeParserCtxt(ctx);
 	}
 	
+	// Post-parsing phase for all extensions
+	for (NSObject<SVGKParserExtension>* extension in self.parserExtensions)
+	{
+		if ([extension respondsToSelector:@selector(postParse:)])
+		{
+			[extension postParse:currentParseRun];
+		}
+	}
+	
 	[[NSThread currentThread].threadDictionary removeObjectForKey:kThreadLocalCurrentlyActiveParser];
 	
 	// 4. return result

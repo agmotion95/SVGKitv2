@@ -105,7 +105,16 @@
                     
                     if( linkedElement == nil )
                     {
-                        NSLog(@"[%@] WARNING: Found an SVG <use> tag that points to a non-existent element. Missing element: id = %@", [self class], linkHref);
+                        /** Delayed resolution: if we can't find the element now, it might be later in the file */
+                        NSMutableDictionary* extensionDict = [parseResult dictionaryForParserExtension:self];
+                        NSMutableArray* unresolvedUses = [extensionDict objectForKey:@"unresolvedUses"];
+                        if( unresolvedUses == nil )
+                        {
+                            unresolvedUses = [NSMutableArray array];
+                            [extensionDict setObject:unresolvedUses forKey:@"unresolvedUses"];
+                        }
+                        
+                        [unresolvedUses addObject:@{@"use": useElement, @"href": linkHref}];
                     }
                     else
                     {
@@ -119,6 +128,31 @@
 	}
 	
 	return nil;
+}
+
+-(void)postParse:(SVGKParseResult *)parseResult
+{
+    NSMutableDictionary* extensionDict = [parseResult dictionaryForParserExtension:self];
+    NSMutableArray* unresolvedUses = [extensionDict objectForKey:@"unresolvedUses"];
+    
+    for( NSDictionary* pair in unresolvedUses )
+    {
+        SVGUseElement* useElement = [pair objectForKey:@"use"];
+        NSString* linkHref = [pair objectForKey:@"href"];
+        
+        SVGElement* linkedElement = (SVGElement*) [parseResult.parsedDocument getElementById:linkHref];
+        
+        if( linkedElement == nil )
+        {
+            NSLog(@"[%@] WARNING: Found an SVG <use> tag that points to a non-existent element. Missing element: id = %@", [self class], linkHref);
+        }
+        else
+        {
+            useElement.instanceRoot = [self convertSVGElementToElementInstanceTree:linkedElement outermostUseElement:useElement];
+        }
+    }
+    
+    [unresolvedUses removeAllObjects];
 }
 
 -(void)handleEndElement:(Node *)newNode document:(SVGKSource *)document parseResult:(SVGKParseResult *)parseResult
