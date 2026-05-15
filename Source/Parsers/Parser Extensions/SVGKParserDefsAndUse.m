@@ -79,8 +79,11 @@
 			
 			NSString* hrefAttribute = [useElement getAttributeNS:@"http://www.w3.org/1999/xlink" localName:@"href"];
 			
-			NSAssert( [hrefAttribute length] > 0, @"Found an SVG <use> tag that has no 'xlink:href' attribute. File is invalid / don't know how to parse this" );
-			if( [hrefAttribute length] > 0 )
+			if( [hrefAttribute length] == 0 )
+			{
+				NSLog(@"[%@] WARNING: Found an SVG <use> tag that has no 'xlink:href' attribute. File is invalid / don't know how to parse this", [self class]);
+			}
+			else
 			{
 				NSString* linkHref = [((Attr*)[attributes valueForKey:@"xlink:href"]) value];
                 /** support `url(#id) funcIRI as well to follow SVG spec` */
@@ -89,17 +92,26 @@
                     linkHref = [linkHref substringWithRange:range];
                 }
                  
-                NSAssert( [linkHref hasPrefix:@"#"], @"Not supported: <use> tags that declare an href to something that DOESN'T begin with #. Href supplied = %@", linkHref );
-				
-				linkHref = [linkHref substringFromIndex:1];
-				
-				/** have to find the node in the DOM tree with id = xlink:href's value */
-				SVGElement* linkedElement = (SVGElement*) [parseResult.parsedDocument getElementById:linkHref];
-				
-				NSAssert( linkedElement != nil, @"Found an SVG <use> tag that points to a non-existent element. Missing element: id = %@", linkHref );
-				
-				
-				useElement.instanceRoot = [self convertSVGElementToElementInstanceTree:linkedElement outermostUseElement:useElement];
+                if( ![linkHref hasPrefix:@"#"] )
+                {
+                    NSLog(@"[%@] WARNING: Not supported: <use> tags that declare an href to something that DOESN'T begin with #. Href supplied = %@", [self class], linkHref);
+                }
+                else
+                {
+                    linkHref = [linkHref substringFromIndex:1];
+                    
+                    /** have to find the node in the DOM tree with id = xlink:href's value */
+                    SVGElement* linkedElement = (SVGElement*) [parseResult.parsedDocument getElementById:linkHref];
+                    
+                    if( linkedElement == nil )
+                    {
+                        NSLog(@"[%@] WARNING: Found an SVG <use> tag that points to a non-existent element. Missing element: id = %@", [self class], linkHref);
+                    }
+                    else
+                    {
+                        useElement.instanceRoot = [self convertSVGElementToElementInstanceTree:linkedElement outermostUseElement:useElement];
+                    }
+                }
 			}
 			
 			return useElement;
